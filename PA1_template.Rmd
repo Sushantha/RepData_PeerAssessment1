@@ -9,10 +9,11 @@ output:
 ## Loading and preprocessing the data
   Read the data
 ```{r}
-  Data <- read.csv("activity.csv")
+  Data <- read.table("activity.csv", sep= ",", header=TRUE, stringsAsFactors=FALSE)
+  Data$steps <- as.integer(Data$steps)
+  Data$interval <- as.integer(Data$interval)
   library(plyr)
   library(ggplot2)
-  
 ```
 
 
@@ -21,10 +22,13 @@ output:
 ```{r}
     dailySteps <- ddply(Data, .(date), summarise, sumSteps=sum(steps))
     hist(dailySteps$sumSteps,col="red", xlab ="Total daily steps", main = "Histogram of total steps taken each day" )
+```
+ Next, we will take a look at the mean and median values.
+```{r}
   meanSteps <-  as.integer(mean(dailySteps$sumSteps, na.rm=TRUE))
   medianSteps <- as.integer(median(dailySteps$sumSteps, na.rm=TRUE))
 ```
- Next, we will take a look at the mean and median values. The mean of total steps taken each day is `r meanSteps` and median of total steps taken each day is `r medianSteps`
+ The mean of total steps taken each day is `r meanSteps` and median of total steps taken each day is `r medianSteps`
  
 ## What is the average daily activity pattern?
 A time series plot  of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
@@ -48,7 +52,7 @@ On average, the interval that contains the most number of steps is `r maxInterva
    updatedData <- Data[!is.na(Data$steps), ]
    totalMissing <- nrow(missingData)
 ```
-  The total number of rows with missing data is `r totalMissing'. 
+  The total number of rows with missing data is `r totalMissing`. 
   
   Let us replace all missing values by the average number of steps taken during the same five minute interval. We will use the average steps per interval previously calculated for this purpose as below. We will then create a new data set which is the same as the old dataset but with missing values filled in. 
   
@@ -72,3 +76,16 @@ Next, for this new dataset, we will take a look at the mean and median values.
 The mean of total steps taken each day is `r meanSteps` and median of total steps taken each day is `r medianSteps`. We can thus see the mean is unchanged but median is now changed and matches the mean. 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+We will create a new factor variable in the dataset with two levels -- "weekday" and "weekend" indicating whether a given date is a weekday or weekend day. We will then make a panel plot containing a time series plot (i.e. `type = "l"`) of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis).
+```{r}
+updatedData$day <- as.factor(ifelse(weekdays(as.Date(updatedData$date))  %in% c("Saturday", "Sunday"), "Weekend", "Weekday")) 
+
+avgSteps <- ddply(updatedData, .(day, interval), summarise, meanSteps=as.numeric(mean(steps, na.rm=TRUE)))
+par(mfrow = c(2, 1))
+g <- ggplot(avgSteps, aes( interval, meanSteps)) +geom_line() + facet_wrap(~day, nrow = 2, ncol = 1) +labs(y="Number of Steps") 
+  	print(g)
+    
+```
+
+From the above plot, it can be seen that the number of steps taken is more on weekdays than weekends. 
